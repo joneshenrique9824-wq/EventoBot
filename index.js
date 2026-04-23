@@ -117,7 +117,8 @@ async function alertaEvento(client) {
     const diff = (EVENTO_INICIO - agora) / 60000;
 
     if (diff <= 20 && diff > 0 && !ALERTA_ENVIADO.has("20")) {
-      const canal = await client.channels.fetch(CANAL_EVENTO);
+      const canal = await client.channels.fetch(CANAL_EVENTO).catch(() => null);
+      if (!canal) return;
 
       await canal.send({
         embeds: [
@@ -140,7 +141,7 @@ async function alertaEvento(client) {
 ========================= */
 async function updateEvento(client) {
   try {
-    const canal = await client.channels.fetch(CANAL_EVENTO);
+    const canal = await client.channels.fetch(CANAL_EVENTO).catch(() => null);
     if (!canal) return;
 
     if (!msgEventoId) {
@@ -179,30 +180,35 @@ async function updateEvento(client) {
    🎯 INTERAÇÕES
 ========================= */
 function eventoInteractions(interaction) {
-  if (!interaction.isButton()) return;
+  try {
+    if (!interaction.isButton()) return;
 
-  const id = interaction.user.id;
+    const id = interaction.user.id;
 
-  if (!eventoAtivo()) {
+    if (!eventoAtivo()) {
+      return interaction.reply({
+        content: "⏰ Evento ainda não está ativo.",
+        ephemeral: true
+      });
+    }
+
+    if (!interaction.member.roles.cache.has(PARTICIPANTE_ROLE)) {
+      return interaction.reply({
+        content: "🚫 Você não pode participar.",
+        ephemeral: true
+      });
+    }
+
+    rankingEvento.set(id, (rankingEvento.get(id) || 0) + 1);
+
     return interaction.reply({
-      content: "⏰ Evento ainda não está ativo.",
+      content: "✔ +1 ponto registrado!",
       ephemeral: true
     });
+
+  } catch (err) {
+    console.log("Erro interação:", err.message);
   }
-
-  if (!interaction.member.roles.cache.has(PARTICIPANTE_ROLE)) {
-    return interaction.reply({
-      content: "🚫 Você não pode participar.",
-      ephemeral: true
-    });
-  }
-
-  rankingEvento.set(id, (rankingEvento.get(id) || 0) + 1);
-
-  return interaction.reply({
-    content: "✔ +1 ponto registrado!",
-    ephemeral: true
-  });
 }
 
 /* =========================
@@ -213,6 +219,9 @@ function startEventoLoops(client) {
   setInterval(() => alertaEvento(client), 60000);
 }
 
+/* =========================
+   EXPORT
+========================= */
 export {
   startEventoLoops,
   eventoInteractions
