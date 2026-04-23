@@ -42,10 +42,10 @@ const stats = new Map();
    📢 EVENTO SYSTEM
 ========================= */
 
-const CANAL_EVENTO = "COLOQUE_ID_DO_CANAL_EVENTO";
+const CANAL_EVENTO = "1477683908026961940";
 
 const STAFF_EVENTO = [
-  "111111111111111111",
+  "1490431614055088128",
   "222222222222222222"
 ];
 
