@@ -1,50 +1,15 @@
-import "dotenv/config";
-import express from "express";
 import {
-  Client,
-  GatewayIntentBits,
   EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
-  ButtonStyle,
-  SlashCommandBuilder,
-  REST,
-  Routes
+  ButtonStyle
 } from "discord.js";
 
 /* =========================
-   🌐 KEEP ALIVE
+   ⏰ CONFIGURAÇÃO
 ========================= */
-const app = express();
-app.get("/", (_, res) => res.send("🏥 Hospital Bella Bot Online"));
-app.listen(3000);
 
-/* =========================
-   🔐 CONFIG
-========================= */
-const TOKEN = process.env.TOKEN;
-const CLIENT_ID = process.env.CLIENT_ID;
-const GUILD_ID = process.env.GUILD_ID;
-
-/* =========================
-   🤖 CLIENT
-========================= */
-const client = new Client({
-  intents: [GatewayIntentBits.Guilds]
-});
-
-/* =========================
-   🏥 SISTEMA HOSPITAL
-========================= */
-const pontos = new Map();
-const chamados = new Map();
-const stats = new Map();
-
-/* =========================
-   📅 EVENTO
-========================= */
 const CANAL_EVENTO = "1477683908026961940";
-
 const PARTICIPANTE_ROLE = "1492553421973356795";
 
 const EVENTO_INICIO = new Date("2026-04-24T19:00:00-03:00");
@@ -64,7 +29,7 @@ function eventoAtivo() {
 }
 
 /* =========================
-   🏆 TOP EVENTO
+   🏆 TOP 3
 ========================= */
 function getTop() {
   return [...rankingEvento.entries()]
@@ -73,34 +38,7 @@ function getTop() {
 }
 
 /* =========================
-   🎖 EMBED EVENTO
-========================= */
-function embedEvento() {
-  const top = getTop();
-  const medalhas = ["🥇", "🥈", "🥉"];
-
-  const lista = top.length
-    ? top.map(([id, p], i) => `${medalhas[i]} <@${id}> — **${p} pts**`).join("\n")
-    : "Sem participantes ainda.";
-
-  return new EmbedBuilder()
-    .setColor("#00ffcc")
-    .setTitle("🏥 EVENTO HOSPITAL BELLA RP")
-    .setDescription(`
-📅 24/04/2026 — 19:00 até 20:30 (Brasília)
-
-🏆 TOP:
-${lista}
-
-💰 Premiação:
-🥇 75.000
-🥈 50.000
-🥉 25.000
-`);
-}
-
-/* =========================
-   🎮 BOTÕES EVENTO
+   🎮 BOTÕES
 ========================= */
 function rowEvento() {
   return new ActionRowBuilder().addComponents(
@@ -122,9 +60,58 @@ function rowEvento() {
 }
 
 /* =========================
+   🎖 EMBED BONITO
+========================= */
+function embedEvento() {
+  const top = getTop();
+  const medalhas = ["🥇", "🥈", "🥉"];
+
+  const lista = top.length
+    ? top.map(([id, p], i) =>
+        `${medalhas[i]} <@${id}> — **${p} pontos**`
+      ).join("\n")
+    : "Sem participantes ainda.";
+
+  return new EmbedBuilder()
+    .setColor("#00ffcc")
+    .setTitle("🏥 EVENTO HOSPITAL BELLA RP")
+    .setDescription(`
+━━━━━━━━━━━━━━━━━━━━━━
+🏥 **EVENTO OFICIAL HOSPITAL BELLA**
+
+📅 24/04/2026  
+🕖 19:00 até 20:30 (Brasília)
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🔥 **COMPETIÇÃO ATIVA**
+Atendimentos e chamados geram pontos em tempo real.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🏆 **RANKING**
+${lista}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+💰 **PREMIAÇÃO**
+🥇 75.000 + Cargo TOP 1  
+🥈 50.000 + Cargo TOP 2  
+🥉 25.000 + Cargo TOP 3  
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+⚡ Apenas participantes autorizados
+🏥 Hospital Bella RP
+━━━━━━━━━━━━━━━━━━━━━━
+`)
+    .setFooter({ text: "Sistema Automático • Hospital Bella RP" });
+}
+
+/* =========================
    🚨 ALERTA 20 MIN
 ========================= */
-async function alertaEvento() {
+async function alertaEvento(client) {
   try {
     const agora = new Date();
     const diff = (EVENTO_INICIO - agora) / 60000;
@@ -137,7 +124,7 @@ async function alertaEvento() {
           new EmbedBuilder()
             .setColor("#ffcc00")
             .setTitle("🚨 EVENTO EM 20 MINUTOS")
-            .setDescription("🏥 Hospital Bella começa em breve!")
+            .setDescription("🏥 O Hospital Bella vai começar em breve!")
         ]
       });
 
@@ -149,11 +136,12 @@ async function alertaEvento() {
 }
 
 /* =========================
-   🔁 UPDATE EVENTO
+   🔁 UPDATE PAINEL
 ========================= */
-async function updateEvento() {
+async function updateEvento(client) {
   try {
     const canal = await client.channels.fetch(CANAL_EVENTO);
+    if (!canal) return;
 
     if (!msgEventoId) {
       const msg = await canal.send({
@@ -190,47 +178,42 @@ async function updateEvento() {
 /* =========================
    🎯 INTERAÇÕES
 ========================= */
-client.on("interactionCreate", async (interaction) => {
+function eventoInteractions(interaction) {
   if (!interaction.isButton()) return;
 
   const id = interaction.user.id;
 
-  // ⛔ fora do evento
   if (!eventoAtivo()) {
     return interaction.reply({
-      content: "⏰ Evento não está ativo.",
+      content: "⏰ Evento ainda não está ativo.",
       ephemeral: true
     });
   }
 
-  // 🔒 permissão
   if (!interaction.member.roles.cache.has(PARTICIPANTE_ROLE)) {
     return interaction.reply({
-      content: "🚫 Sem permissão.",
+      content: "🚫 Você não pode participar.",
       ephemeral: true
     });
   }
 
-  // 🏥 ações
   rankingEvento.set(id, (rankingEvento.get(id) || 0) + 1);
 
   return interaction.reply({
     content: "✔ +1 ponto registrado!",
     ephemeral: true
   });
-});
+}
 
 /* =========================
-   ⏱ LOOP AUTOMÁTICO
+   ⏱ LOOP
 ========================= */
-client.once("ready", () => {
-  console.log(`🏥 Logado como ${client.user.tag}`);
+function startEventoLoops(client) {
+  setInterval(() => updateEvento(client), 5000);
+  setInterval(() => alertaEvento(client), 60000);
+}
 
-  setInterval(updateEvento, 5000);
-  setInterval(alertaEvento, 60000);
-});
-
-/* =========================
-   🚀 LOGIN
-========================= */
-client.login(TOKEN);
+export {
+  startEventoLoops,
+  eventoInteractions
+};
