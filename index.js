@@ -6,34 +6,27 @@ import {
 } from "discord.js";
 
 /* =========================
-   ⏰ CONFIG DO EVENTO
+   ⏰ CONFIG
 ========================= */
 
 const CANAL_EVENTO = "1477683908026961940";
 
-// 👮 STAFF
-const STAFF_ROLE = "1490431614055088128";
-
-// 👤 PARTICIPANTES AUTORIZADOS
 const PARTICIPANTE_ROLE = "1492553421973356795";
 
-// 🏆 CARGOS TOP 3
 const TOP1_ROLE = "1477683902100410424";
 const TOP2_ROLE = "1495374426815074304";
 const TOP3_ROLE = "1495374557404594267";
 
-// 📅 HORÁRIO BRASILIA
 const EVENTO_INICIO = new Date("2026-04-24T19:00:00-03:00");
 const EVENTO_FIM = new Date("2026-04-24T20:30:00-03:00");
 
-// 🔔 controle de alertas
 const ALERTA_ENVIADO = new Set();
 
 const rankingEvento = new Map();
 let msgEventoId = null;
 
 /* =========================
-   🔥 VERIFICAR SE EVENTO ESTÁ ATIVO
+   🔥 EVENTO ATIVO
 ========================= */
 function eventoAtivo() {
   const agora = new Date();
@@ -50,7 +43,7 @@ function getTop() {
 }
 
 /* =========================
-   🎖 EMBED PREMIUM
+   🎖 EMBED
 ========================= */
 function embedEvento() {
   const top = getTop();
@@ -62,36 +55,20 @@ function embedEvento() {
 
   return new EmbedBuilder()
     .setColor("#00ffcc")
-    .setTitle("🏥 EVENTO HOSPITAL BELLA — COMPETIÇÃO OFICIAL")
+    .setTitle("🏥 EVENTO HOSPITAL BELLA")
     .setDescription(`
-━━━━━━━━━━━━━━━━━━━━━━
-📅 **HORÁRIO OFICIAL (BRASILIA)**
+📅 24/04/2026 — 19:00 até 20:30 (Brasília)
 
-🕖 Início: 24/04/2026 - 19:00  
-🕣 Fim: 24/04/2026 - 20:30  
-
-━━━━━━━━━━━━━━━━━━━━━━
-
-🏆 **TOP PARTICIPANTES**
+🏆 TOP:
 ${lista}
 
-━━━━━━━━━━━━━━━━━━━━━━
-
-💰 **PREMIAÇÃO FINAL**
-🥇 75.000 + Cargo TOP 1  
-🥈 50.000 + Cargo TOP 2  
-🥉 25.000 + Cargo TOP 3  
-
-━━━━━━━━━━━━━━━━━━━━━━
-
-⚡ Evento automático • Hospital Bella RP
-━━━━━━━━━━━━━━━━━━━━━━
-`)
-    .setFooter({ text: "Hospital Bella RP • Sistema Premium" });
+💰 Premiação:
+🥇 75k | 🥈 50k | 🥉 25k
+`);
 }
 
 /* =========================
-   🎮 BOTÕES
+   🔘 BOTÕES
 ========================= */
 function rowEvento() {
   return new ActionRowBuilder().addComponents(
@@ -107,68 +84,44 @@ function rowEvento() {
 
     new ButtonBuilder()
       .setCustomId("evento_ranking")
-      .setLabel("📊 Meu Ranking")
+      .setLabel("📊 Ranking")
       .setStyle(ButtonStyle.Secondary)
   );
 }
 
 /* =========================
-   🚨 ALERTA 20 MIN ANTES
+   🚨 ALERTA 20 MIN
 ========================= */
 async function alertaEvento(client) {
-  try {
-    const agora = new Date();
-    const diffMin = Math.floor((EVENTO_INICIO - agora) / 60000);
+  const agora = new Date();
+  const diff = (EVENTO_INICIO - agora) / 60000;
 
-    if (diffMin <= 20 && diffMin > 0 && !ALERTA_ENVIADO.has("20min")) {
+  if (diff <= 20 && diff > 0 && !ALERTA_ENVIADO.has("20")) {
+    const canal = await client.channels.fetch(CANAL_EVENTO);
 
-      const canal = await client.channels.fetch(CANAL_EVENTO);
+    await canal.send({
+      embeds: [
+        new EmbedBuilder()
+          .setColor("#ffcc00")
+          .setTitle("🚨 EVENTO EM 20 MINUTOS")
+          .setDescription("🏥 Hospital Bella começa em breve!")
+      ]
+    });
 
-      const embed = new EmbedBuilder()
-        .setColor("#ffcc00")
-        .setTitle("🚨 EVENTO HOSPITAL BELLA")
-        .setDescription(`
-━━━━━━━━━━━━━━━━━━━━━━
-⏰ **ATENÇÃO!**
-
-🏥 O EVENTO HOSPITAL BELLA  
-COMEÇA EM **20 MINUTOS!**
-
-📅 Horário de Brasília:
-🕖 24/04/2026 às 19:00
-
-━━━━━━━━━━━━━━━━━━━━━━
-
-🔥 Preparem-se para competir!
-💉 Atendimento e ranking valendo pontos
-🏆 Premiação em dinheiro + cargos
-
-━━━━━━━━━━━━━━━━━━━━━━
-`)
-        .setFooter({ text: "Hospital Bella RP • Aviso Automático" });
-
-      await canal.send({ embeds: [embed] });
-
-      ALERTA_ENVIADO.add("20min");
-    }
-
-  } catch (err) {
-    console.log("❌ Erro alerta:", err.message);
+    ALERTA_ENVIADO.add("20");
   }
 }
 
 /* =========================
-   🔁 UPDATE EVENTO
+   🔁 UPDATE
 ========================= */
-export async function updateEvento(client) {
+async function updateEvento(client) {
   try {
     const canal = await client.channels.fetch(CANAL_EVENTO);
 
-    const embed = embedEvento();
-
     if (!msgEventoId) {
       const msg = await canal.send({
-        embeds: [embed],
+        embeds: [embedEvento()],
         components: [rowEvento()]
       });
 
@@ -178,75 +131,48 @@ export async function updateEvento(client) {
 
       if (msg) {
         await msg.edit({
-          embeds: [embed],
+          embeds: [embedEvento()],
           components: [rowEvento()]
         });
       }
     }
-
   } catch (err) {
-    console.log("❌ Erro update evento:", err.message);
+    console.log("Erro evento:", err.message);
   }
 }
 
 /* =========================
-   🎯 INTERAÇÕES
+   🎯 INTERAÇÕES (IMPORTANTE)
 ========================= */
-export async function eventoInteractions(interaction) {
+export function eventoInteractions(interaction) {
   if (!interaction.isButton()) return;
 
-  const member = interaction.member;
   const id = interaction.user.id;
 
-  // ⛔ fora do horário
   if (!eventoAtivo()) {
     return interaction.reply({
-      content: "⏰ O evento ainda não começou ou já foi encerrado.",
+      content: "⏰ Evento ainda não está ativo.",
       ephemeral: true
     });
   }
 
-  // 🔒 permissão
-  if (!member.roles.cache.has(PARTICIPANTE_ROLE)) {
+  if (!interaction.member.roles.cache.has(PARTICIPANTE_ROLE)) {
     return interaction.reply({
-      content: "🚫 Você não tem permissão para participar do evento.",
+      content: "🚫 Sem permissão.",
       ephemeral: true
     });
   }
 
-  // 🏥 ATENDER
-  if (interaction.customId === "evento_atender") {
-    rankingEvento.set(id, (rankingEvento.get(id) || 0) + 1);
+  rankingEvento.set(id, (rankingEvento.get(id) || 0) + 1);
 
-    return interaction.reply({
-      content: "🏥 +1 ponto por atendimento!",
-      ephemeral: true
-    });
-  }
-
-  // 📞 CHAMADO
-  if (interaction.customId === "evento_chamar") {
-    rankingEvento.set(id, (rankingEvento.get(id) || 0) + 1);
-
-    return interaction.reply({
-      content: "📞 +1 ponto por chamado!",
-      ephemeral: true
-    });
-  }
-
-  // 📊 RANKING
-  if (interaction.customId === "evento_ranking") {
-    const pontos = rankingEvento.get(id) || 0;
-
-    return interaction.reply({
-      content: `📊 Você tem **${pontos} pontos** no evento.`,
-      ephemeral: true
-    });
-  }
+  return interaction.reply({
+    content: "✔ +1 ponto registrado!",
+    ephemeral: true
+  });
 }
 
 /* =========================
-   ⏱ LOOP AUTOMÁTICO (NO READY)
+   ⏱ LOOP
 ========================= */
 export function startEventoLoops(client) {
   setInterval(() => updateEvento(client), 5000);
