@@ -6,7 +6,7 @@ import {
 } from "discord.js";
 
 /* =========================
-   ⏰ CONFIGURAÇÃO
+   ⚙️ CONFIG
 ========================= */
 
 const CANAL_EVENTO = "1477683908026961940";
@@ -15,24 +15,27 @@ const PARTICIPANTE_ROLE = "1492553421973356795";
 const EVENTO_INICIO = new Date("2026-04-24T19:00:00-03:00");
 const EVENTO_FIM = new Date("2026-04-24T20:30:00-03:00");
 
-const rankingEvento = new Map();
-const ALERTA_ENVIADO = new Set();
+/* =========================
+   📊 DADOS
+========================= */
 
-let msgEventoId = null;
+const ranking = new Map();
+const alerta = new Set();
+let msgId = null;
 
 /* =========================
    🔥 EVENTO ATIVO
 ========================= */
-function eventoAtivo() {
-  const agora = new Date();
-  return agora >= EVENTO_INICIO && agora <= EVENTO_FIM;
+function ativo() {
+  const now = new Date();
+  return now >= EVENTO_INICIO && now <= EVENTO_FIM;
 }
 
 /* =========================
    🏆 TOP 3
 ========================= */
-function getTop() {
-  return [...rankingEvento.entries()]
+function top3() {
+  return [...ranking.entries()]
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3);
 }
@@ -40,20 +43,20 @@ function getTop() {
 /* =========================
    🎮 BOTÕES
 ========================= */
-function rowEvento() {
+function buttons() {
   return new ActionRowBuilder().addComponents(
     new ButtonBuilder()
-      .setCustomId("evento_atender")
+      .setCustomId("atender")
       .setLabel("🏥 Atender")
       .setStyle(ButtonStyle.Success),
 
     new ButtonBuilder()
-      .setCustomId("evento_chamar")
+      .setCustomId("chamar")
       .setLabel("📞 Chamado")
       .setStyle(ButtonStyle.Primary),
 
     new ButtonBuilder()
-      .setCustomId("evento_ranking")
+      .setCustomId("rank")
       .setLabel("📊 Ranking")
       .setStyle(ButtonStyle.Secondary)
   );
@@ -62,13 +65,13 @@ function rowEvento() {
 /* =========================
    🎖 EMBED BONITO
 ========================= */
-function embedEvento() {
-  const top = getTop();
-  const medalhas = ["🥇", "🥈", "🥉"];
+function embed() {
+  const top = top3();
+  const medal = ["🥇", "🥈", "🥉"];
 
-  const lista = top.length
+  const list = top.length
     ? top.map(([id, p], i) =>
-        `${medalhas[i]} <@${id}> — **${p} pontos**`
+        `${medal[i]} <@${id}> — **${p} pontos**`
       ).join("\n")
     : "Sem participantes ainda.";
 
@@ -80,99 +83,92 @@ function embedEvento() {
 🏥 **EVENTO OFICIAL HOSPITAL BELLA**
 
 📅 24/04/2026  
-🕖 19:00 até 20:30 (Brasília)
+🕖 19:00 - 20:30 (Brasília)
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
-🔥 **COMPETIÇÃO ATIVA**
-Atendimentos e chamados geram pontos em tempo real.
+🔥 COMPETIÇÃO ATIVA
+
+🏆 TOP 3
+${list}
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
-🏆 **RANKING**
-${lista}
-
-━━━━━━━━━━━━━━━━━━━━━━
-
-💰 **PREMIAÇÃO**
+💰 PREMIAÇÃO
 🥇 75.000 + Cargo TOP 1  
 🥈 50.000 + Cargo TOP 2  
 🥉 25.000 + Cargo TOP 3  
 
 ━━━━━━━━━━━━━━━━━━━━━━
-
-⚡ Apenas participantes autorizados
-🏥 Hospital Bella RP
-━━━━━━━━━━━━━━━━━━━━━━
 `)
-    .setFooter({ text: "Sistema Automático • Hospital Bella RP" });
+    .setFooter({ text: "Hospital Bella RP • Sistema Automático" });
 }
 
 /* =========================
    🚨 ALERTA 20 MIN
 ========================= */
-async function alertaEvento(client) {
+async function alerta(client) {
   try {
-    const agora = new Date();
-    const diff = (EVENTO_INICIO - agora) / 60000;
+    const now = new Date();
+    const diff = (EVENTO_INICIO - now) / 60000;
 
-    if (diff <= 20 && diff > 0 && !ALERTA_ENVIADO.has("20")) {
+    if (diff <= 20 && diff > 0 && !alerta.has("20")) {
       const canal = await client.channels.fetch(CANAL_EVENTO).catch(() => null);
       if (!canal) return;
 
       await canal.send({
         embeds: [
           new EmbedBuilder()
-            .setColor("#ffcc00")
+            .setColor("Yellow")
             .setTitle("🚨 EVENTO EM 20 MINUTOS")
-            .setDescription("🏥 O Hospital Bella vai começar em breve!")
+            .setDescription("🏥 Hospital Bella vai começar em breve!")
         ]
       });
 
-      ALERTA_ENVIADO.add("20");
+      alerta.add("20");
     }
-  } catch (err) {
-    console.log("Erro alerta:", err.message);
+  } catch (e) {
+    console.log("alerta erro:", e.message);
   }
 }
 
 /* =========================
    🔁 UPDATE PAINEL
 ========================= */
-async function updateEvento(client) {
+async function update(client) {
   try {
     const canal = await client.channels.fetch(CANAL_EVENTO).catch(() => null);
     if (!canal) return;
 
-    if (!msgEventoId) {
+    if (!msgId) {
       const msg = await canal.send({
-        embeds: [embedEvento()],
-        components: [rowEvento()]
+        embeds: [embed()],
+        components: [buttons()]
       });
 
-      msgEventoId = msg.id;
+      msgId = msg.id;
       return;
     }
 
-    const msg = await canal.messages.fetch(msgEventoId).catch(() => null);
+    const msg = await canal.messages.fetch(msgId).catch(() => null);
 
     if (!msg) {
       const newMsg = await canal.send({
-        embeds: [embedEvento()],
-        components: [rowEvento()]
+        embeds: [embed()],
+        components: [buttons()]
       });
 
-      msgEventoId = newMsg.id;
+      msgId = newMsg.id;
       return;
     }
 
     await msg.edit({
-      embeds: [embedEvento()],
-      components: [rowEvento()]
+      embeds: [embed()],
+      components: [buttons()]
     });
 
-  } catch (err) {
-    console.log("Erro update:", err.message);
+  } catch (e) {
+    console.log("update erro:", e.message);
   }
 }
 
@@ -180,43 +176,38 @@ async function updateEvento(client) {
    🎯 INTERAÇÕES
 ========================= */
 function eventoInteractions(interaction) {
-  try {
-    if (!interaction.isButton()) return;
+  if (!interaction.isButton()) return;
 
-    const id = interaction.user.id;
+  const id = interaction.user.id;
 
-    if (!eventoAtivo()) {
-      return interaction.reply({
-        content: "⏰ Evento ainda não está ativo.",
-        ephemeral: true
-      });
-    }
-
-    if (!interaction.member.roles.cache.has(PARTICIPANTE_ROLE)) {
-      return interaction.reply({
-        content: "🚫 Você não pode participar.",
-        ephemeral: true
-      });
-    }
-
-    rankingEvento.set(id, (rankingEvento.get(id) || 0) + 1);
-
+  if (!ativo()) {
     return interaction.reply({
-      content: "✔ +1 ponto registrado!",
+      content: "⏰ Evento não está ativo.",
       ephemeral: true
     });
-
-  } catch (err) {
-    console.log("Erro interação:", err.message);
   }
+
+  if (!interaction.member.roles.cache.has(PARTICIPANTE_ROLE)) {
+    return interaction.reply({
+      content: "🚫 Sem permissão para participar.",
+      ephemeral: true
+    });
+  }
+
+  ranking.set(id, (ranking.get(id) || 0) + 1);
+
+  return interaction.reply({
+    content: "✔ +1 ponto registrado!",
+    ephemeral: true
+  });
 }
 
 /* =========================
    ⏱ LOOP
 ========================= */
 function startEventoLoops(client) {
-  setInterval(() => updateEvento(client), 5000);
-  setInterval(() => alertaEvento(client), 60000);
+  setInterval(() => update(client), 5000);
+  setInterval(() => alerta(client), 60000);
 }
 
 /* =========================
@@ -226,3 +217,39 @@ export {
   startEventoLoops,
   eventoInteractions
 };
+import "dotenv/config";
+import express from "express";
+import { Client, GatewayIntentBits } from "discord.js";
+import { startEventoLoops, eventoInteractions } from "./evento.js";
+
+/* =========================
+   🌐 KEEP ALIVE
+========================= */
+const app = express();
+app.get("/", (_, res) => res.send("🏥 Hospital Bella Bot Online"));
+app.listen(3000);
+
+/* =========================
+   🤖 BOT
+========================= */
+const client = new Client({
+  intents: [GatewayIntentBits.Guilds]
+});
+
+/* =========================
+   READY
+========================= */
+client.once("ready", () => {
+  console.log(`🏥 Logado como ${client.user.tag}`);
+  startEventoLoops(client);
+});
+
+/* =========================
+   INTERAÇÕES
+========================= */
+client.on("interactionCreate", eventoInteractions);
+
+/* =========================
+   LOGIN
+========================= */
+client.login(process.env.TOKEN);
