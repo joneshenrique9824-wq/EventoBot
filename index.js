@@ -20,7 +20,7 @@ const EVENTO_FIM = new Date("2026-04-24T20:30:00-03:00");
 ========================= */
 
 const ranking = new Map();
-const alerta = new Set();
+const alertasEnviados = new Set();
 let msgId = null;
 
 /* =========================
@@ -63,7 +63,7 @@ function buttons() {
 }
 
 /* =========================
-   🎖 EMBED BONITO
+   🎖 EMBED
 ========================= */
 function embed() {
   const top = top3();
@@ -80,19 +80,13 @@ function embed() {
     .setTitle("🏥 EVENTO HOSPITAL BELLA RP")
     .setDescription(`
 ━━━━━━━━━━━━━━━━━━━━━━
-🏥 **EVENTO OFICIAL HOSPITAL BELLA**
-
-📅 24/04/2026  
+📅 24/04/2026
 🕖 19:00 - 20:30 (Brasília)
-
-━━━━━━━━━━━━━━━━━━━━━━
 
 🔥 COMPETIÇÃO ATIVA
 
 🏆 TOP 3
 ${list}
-
-━━━━━━━━━━━━━━━━━━━━━━
 
 💰 PREMIAÇÃO
 🥇 75.000 + Cargo TOP 1  
@@ -107,69 +101,58 @@ ${list}
 /* =========================
    🚨 ALERTA 20 MIN
 ========================= */
-async function alerta(client) {
-  try {
-    const now = new Date();
-    const diff = (EVENTO_INICIO - now) / 60000;
+async function alertaEvento(client) {
+  const now = new Date();
+  const diff = (EVENTO_INICIO - now) / 60000;
 
-    if (diff <= 20 && diff > 0 && !alerta.has("20")) {
-      const canal = await client.channels.fetch(CANAL_EVENTO).catch(() => null);
-      if (!canal) return;
+  if (diff <= 20 && diff > 0 && !alertasEnviados.has("20")) {
+    const canal = await client.channels.fetch(CANAL_EVENTO);
 
-      await canal.send({
-        embeds: [
-          new EmbedBuilder()
-            .setColor("Yellow")
-            .setTitle("🚨 EVENTO EM 20 MINUTOS")
-            .setDescription("🏥 Hospital Bella vai começar em breve!")
-        ]
-      });
+    await canal.send({
+      embeds: [
+        new EmbedBuilder()
+          .setColor("#ffcc00")
+          .setTitle("🚨 EVENTO EM 20 MINUTOS")
+          .setDescription("🏥 O Hospital Bella começa em breve!")
+      ]
+    });
 
-      alerta.add("20");
-    }
-  } catch (e) {
-    console.log("alerta erro:", e.message);
+    alertasEnviados.add("20");
   }
 }
 
 /* =========================
-   🔁 UPDATE PAINEL
+   🔁 UPDATE
 ========================= */
 async function update(client) {
-  try {
-    const canal = await client.channels.fetch(CANAL_EVENTO).catch(() => null);
-    if (!canal) return;
+  const canal = await client.channels.fetch(CANAL_EVENTO);
 
-    if (!msgId) {
-      const msg = await canal.send({
-        embeds: [embed()],
-        components: [buttons()]
-      });
-
-      msgId = msg.id;
-      return;
-    }
-
-    const msg = await canal.messages.fetch(msgId).catch(() => null);
-
-    if (!msg) {
-      const newMsg = await canal.send({
-        embeds: [embed()],
-        components: [buttons()]
-      });
-
-      msgId = newMsg.id;
-      return;
-    }
-
-    await msg.edit({
+  if (!msgId) {
+    const msg = await canal.send({
       embeds: [embed()],
       components: [buttons()]
     });
 
-  } catch (e) {
-    console.log("update erro:", e.message);
+    msgId = msg.id;
+    return;
   }
+
+  const msg = await canal.messages.fetch(msgId).catch(() => null);
+
+  if (!msg) {
+    const newMsg = await canal.send({
+      embeds: [embed()],
+      components: [buttons()]
+    });
+
+    msgId = newMsg.id;
+    return;
+  }
+
+  await msg.edit({
+    embeds: [embed()],
+    components: [buttons()]
+  });
 }
 
 /* =========================
@@ -189,7 +172,7 @@ function eventoInteractions(interaction) {
 
   if (!interaction.member.roles.cache.has(PARTICIPANTE_ROLE)) {
     return interaction.reply({
-      content: "🚫 Sem permissão para participar.",
+      content: "🚫 Sem permissão.",
       ephemeral: true
     });
   }
@@ -207,12 +190,9 @@ function eventoInteractions(interaction) {
 ========================= */
 function startEventoLoops(client) {
   setInterval(() => update(client), 5000);
-  setInterval(() => alerta(client), 60000);
+  setInterval(() => alertaEvento(client), 60000);
 }
 
-/* =========================
-   EXPORT
-========================= */
 export {
   startEventoLoops,
   eventoInteractions
@@ -226,7 +206,7 @@ import { startEventoLoops, eventoInteractions } from "./evento.js";
    🌐 KEEP ALIVE
 ========================= */
 const app = express();
-app.get("/", (_, res) => res.send("🏥 Hospital Bella Bot Online"));
+app.get("/", (_, res) => res.send("🏥 Hospital Bella Online"));
 app.listen(3000);
 
 /* =========================
@@ -253,3 +233,4 @@ client.on("interactionCreate", eventoInteractions);
    LOGIN
 ========================= */
 client.login(process.env.TOKEN);
+
