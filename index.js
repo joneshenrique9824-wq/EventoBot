@@ -26,7 +26,7 @@ const rankingEvento = new Map();
 let msgEventoId = null;
 
 /* =========================
-   🔥 EVENTO ATIVO
+   🔥 STATUS EVENTO
 ========================= */
 function eventoAtivo() {
   const agora = new Date();
@@ -55,20 +55,33 @@ function embedEvento() {
 
   return new EmbedBuilder()
     .setColor("#00ffcc")
-    .setTitle("🏥 EVENTO HOSPITAL BELLA")
+    .setTitle("🏥 EVENTO HOSPITAL BELLA — OFICIAL")
     .setDescription(`
-📅 24/04/2026 — 19:00 até 20:30 (Brasília)
+━━━━━━━━━━━━━━━━━━━━━━
+📅 **HORÁRIO OFICIAL (BRASILIA)**
 
-🏆 TOP:
+🕖 Início: 19:00  
+🕣 Fim: 20:30  
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🏆 **TOP PARTICIPANTES**
 ${lista}
 
-💰 Premiação:
-🥇 75k | 🥈 50k | 🥉 25k
-`);
+━━━━━━━━━━━━━━━━━━━━━━
+
+💰 **PREMIAÇÃO**
+🥇 75.000 + Cargo TOP 1  
+🥈 50.000 + Cargo TOP 2  
+🥉 25.000 + Cargo TOP 3  
+
+━━━━━━━━━━━━━━━━━━━━━━
+`)
+    .setFooter({ text: "Hospital Bella RP • Evento Automático" });
 }
 
 /* =========================
-   🔘 BOTÕES
+   🎮 BOTÕES
 ========================= */
 function rowEvento() {
   return new ActionRowBuilder().addComponents(
@@ -93,31 +106,37 @@ function rowEvento() {
    🚨 ALERTA 20 MIN
 ========================= */
 async function alertaEvento(client) {
-  const agora = new Date();
-  const diff = (EVENTO_INICIO - agora) / 60000;
+  try {
+    const agora = new Date();
+    const diff = (EVENTO_INICIO - agora) / 60000;
 
-  if (diff <= 20 && diff > 0 && !ALERTA_ENVIADO.has("20")) {
-    const canal = await client.channels.fetch(CANAL_EVENTO);
+    if (diff <= 20 && diff > 0 && !ALERTA_ENVIADO.has("20")) {
+      const canal = await client.channels.fetch(CANAL_EVENTO);
+      if (!canal) return;
 
-    await canal.send({
-      embeds: [
-        new EmbedBuilder()
-          .setColor("#ffcc00")
-          .setTitle("🚨 EVENTO EM 20 MINUTOS")
-          .setDescription("🏥 Hospital Bella começa em breve!")
-      ]
-    });
+      await canal.send({
+        embeds: [
+          new EmbedBuilder()
+            .setColor("#ffcc00")
+            .setTitle("🚨 EVENTO HOSPITAL BELLA")
+            .setDescription("🏥 Começa em **20 minutos!** Prepare-se!")
+        ]
+      });
 
-    ALERTA_ENVIADO.add("20");
+      ALERTA_ENVIADO.add("20");
+    }
+  } catch (err) {
+    console.log("Erro alerta:", err.message);
   }
 }
 
 /* =========================
-   🔁 UPDATE
+   🔁 UPDATE PAINEL
 ========================= */
 async function updateEvento(client) {
   try {
     const canal = await client.channels.fetch(CANAL_EVENTO);
+    if (!canal) return;
 
     if (!msgEventoId) {
       const msg = await canal.send({
@@ -126,23 +145,33 @@ async function updateEvento(client) {
       });
 
       msgEventoId = msg.id;
-    } else {
-      const msg = await canal.messages.fetch(msgEventoId).catch(() => null);
-
-      if (msg) {
-        await msg.edit({
-          embeds: [embedEvento()],
-          components: [rowEvento()]
-        });
-      }
+      return;
     }
+
+    const msg = await canal.messages.fetch(msgEventoId).catch(() => null);
+
+    if (!msg) {
+      const newMsg = await canal.send({
+        embeds: [embedEvento()],
+        components: [rowEvento()]
+      });
+
+      msgEventoId = newMsg.id;
+      return;
+    }
+
+    await msg.edit({
+      embeds: [embedEvento()],
+      components: [rowEvento()]
+    });
+
   } catch (err) {
-    console.log("Erro evento:", err.message);
+    console.log("Erro update:", err.message);
   }
 }
 
 /* =========================
-   🎯 INTERAÇÕES (IMPORTANTE)
+   🎯 INTERAÇÕES
 ========================= */
 export function eventoInteractions(interaction) {
   if (!interaction.isButton()) return;
@@ -158,7 +187,7 @@ export function eventoInteractions(interaction) {
 
   if (!interaction.member.roles.cache.has(PARTICIPANTE_ROLE)) {
     return interaction.reply({
-      content: "🚫 Sem permissão.",
+      content: "🚫 Você não pode participar.",
       ephemeral: true
     });
   }
@@ -172,7 +201,7 @@ export function eventoInteractions(interaction) {
 }
 
 /* =========================
-   ⏱ LOOP
+   ⏱ LOOP AUTOMÁTICO
 ========================= */
 export function startEventoLoops(client) {
   setInterval(() => updateEvento(client), 5000);
