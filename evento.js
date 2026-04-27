@@ -22,7 +22,10 @@ const EVENTO_FIM = new Date("2026-04-27T22:00:00-03:00");
 
 const ranking = new Map();
 const alertasEnviados = new Set();
+
 let msgId = null;
+let eventoCancelado = false;
+let aviso10minEnviado = false;
 
 /* =========================
    🔥 EVENTO ATIVO
@@ -116,7 +119,7 @@ async function alertaEvento(client) {
         new EmbedBuilder()
           .setColor("#ffcc00")
           .setTitle("🚨 EVENTO EM 20 MINUTOS")
-          .setDescription("🏥 O evento de atendimento começa às 21:00!")
+          .setDescription("🏥 O evento começa às 21:00!")
       ]
     });
 
@@ -125,9 +128,52 @@ async function alertaEvento(client) {
 }
 
 /* =========================
+   ⏰ ALERTA 10 MIN
+========================= */
+async function alerta10Min(client) {
+  const now = new Date();
+  const diff = (EVENTO_INICIO - now) / 60000;
+
+  if (diff <= 10 && diff > 0 && !aviso10minEnviado) {
+    const canal = await client.channels.fetch(CANAL_EVENTO);
+
+    await canal.send({
+      embeds: [
+        new EmbedBuilder()
+          .setColor("#ff8800")
+          .setTitle("⏰ FALTAM 10 MINUTOS")
+          .setDescription("🏥 O evento de atendimento está prestes a começar!")
+      ]
+    });
+
+    aviso10minEnviado = true;
+  }
+}
+
+/* =========================
+   ❌ CANCELAR EVENTO
+========================= */
+async function cancelarEvento(client) {
+  eventoCancelado = true;
+
+  const canal = await client.channels.fetch(CANAL_EVENTO);
+
+  await canal.send({
+    embeds: [
+      new EmbedBuilder()
+        .setColor("#ff0000")
+        .setTitle("❌ EVENTO CANCELADO")
+        .setDescription("🏥 O evento foi cancelado por falta de participantes.")
+    ]
+  });
+}
+
+/* =========================
    🔁 UPDATE
 ========================= */
 async function update(client) {
+  if (eventoCancelado) return;
+
   const canal = await client.channels.fetch(CANAL_EVENTO);
 
   if (!msgId) {
@@ -164,18 +210,25 @@ async function update(client) {
 function eventoInteractions(interaction) {
   if (!interaction.isButton()) return;
 
+  if (eventoCancelado) {
+    return interaction.reply({
+      content: "❌ Evento cancelado.",
+      ephemeral: true
+    });
+  }
+
   const id = interaction.user.id;
 
   if (!ativo()) {
     return interaction.reply({
-      content: "⏰ O evento ainda não está ativo ou já terminou.",
+      content: "⏰ Evento não está ativo.",
       ephemeral: true
     });
   }
 
   if (!interaction.member.roles.cache.has(PARTICIPANTE_ROLE)) {
     return interaction.reply({
-      content: "🚫 Você não está participando do evento.",
+      content: "🚫 Sem permissão para participar.",
       ephemeral: true
     });
   }
@@ -194,9 +247,11 @@ function eventoInteractions(interaction) {
 function startEventoLoops(client) {
   setInterval(() => update(client), 5000);
   setInterval(() => alertaEvento(client), 60000);
+  setInterval(() => alerta10Min(client), 60000);
 }
 
 export {
   startEventoLoops,
-  eventoInteractions
+  eventoInteractions,
+  cancelarEvento
 };
