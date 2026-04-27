@@ -47,13 +47,13 @@ function top3() {
 function buttons() {
   return new ActionRowBuilder().addComponents(
     new ButtonBuilder()
-      .setCustomId("atender")
-      .setLabel("🏥 Participar")
+      .setCustomId("atendimento")
+      .setLabel("🏥 Atendimento")
       .setStyle(ButtonStyle.Success),
 
     new ButtonBuilder()
-      .setCustomId("chamar")
-      .setLabel("🎁 Sorteio")
+      .setCustomId("chamado")
+      .setLabel("📞 Chamado")
       .setStyle(ButtonStyle.Primary),
 
     new ButtonBuilder()
@@ -77,32 +77,28 @@ function embed() {
     : "Nenhum participante ainda.";
 
   return new EmbedBuilder()
-    .setColor("#ff00ff")
-    .setTitle("🎉 EVENTO ESPECIAL HOSPITAL BELLA RP")
+    .setColor("#00ffcc")
+    .setTitle("🏥 EVENTO HOSPITAL BELLA RP")
     .setDescription(`
 ━━━━━━━━━━━━━━━━━━━━━━
 📅 **HOJE - 27/04/2026**
 🕘 21:00 até 22:00
 
-🎁 **EVENTO DE SORTEIO + COMPETIÇÃO**
+🏥 **EVENTO DE ATENDIMENTO MÉDICO**
 
-🔥 Participe e acumule pontos!
-🔥 No final haverá sorteio entre participantes ativos!
+🔥 Realize atendimentos e chamados para ganhar pontos!
 
-🏆 TOP 3 (ranking)
+🏆 TOP 3
 ${list}
 
 💰 PREMIAÇÃO
-🥇 100.000 + Cargo VIP + Sorteio Extra  
+🥇 100.000 + Cargo VIP  
 🥈 60.000 + Cargo Destaque  
 🥉 30.000 + Cargo Participante  
 
-🎲 SORTEIO FINAL
-- Dinheiro + Itens exclusivos + Cargo aleatório
-
 ━━━━━━━━━━━━━━━━━━━━━━
 `)
-    .setFooter({ text: "Hospital Bella RP • Evento Automático" });
+    .setFooter({ text: "Hospital Bella RP • Sistema de Evento" });
 }
 
 /* =========================
@@ -120,7 +116,7 @@ async function alertaEvento(client) {
         new EmbedBuilder()
           .setColor("#ffcc00")
           .setTitle("🚨 EVENTO EM 20 MINUTOS")
-          .setDescription("🎉 O evento de SORTEIO começa às 21:00!")
+          .setDescription("🏥 O evento de atendimento começa às 21:00!")
       ]
     });
 
@@ -179,7 +175,7 @@ function eventoInteractions(interaction) {
 
   if (!interaction.member.roles.cache.has(PARTICIPANTE_ROLE)) {
     return interaction.reply({
-      content: "🚫 Você não está registrado no evento.",
+      content: "🚫 Você não está participando do evento.",
       ephemeral: true
     });
   }
@@ -187,7 +183,7 @@ function eventoInteractions(interaction) {
   ranking.set(id, (ranking.get(id) || 0) + 1);
 
   return interaction.reply({
-    content: "✔ Você ganhou +1 ponto no evento!",
+    content: "✔ Atendimento registrado! +1 ponto",
     ephemeral: true
   });
 }
