@@ -12,8 +12,9 @@ import {
 const CANAL_EVENTO = "1477683908026961940";
 const PARTICIPANTE_ROLE = "1492553421973356795";
 
-const EVENTO_INICIO = new Date("2026-04-24T19:00:00-03:00");
-const EVENTO_FIM = new Date("2026-04-24T20:30:00-03:00");
+/* 📅 EVENTO HOJE */
+const EVENTO_INICIO = new Date("2026-04-27T21:00:00-03:00");
+const EVENTO_FIM = new Date("2026-04-27T22:00:00-03:00");
 
 /* =========================
    📊 DADOS
@@ -47,12 +48,12 @@ function buttons() {
   return new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId("atender")
-      .setLabel("🏥 Atender")
+      .setLabel("🏥 Participar")
       .setStyle(ButtonStyle.Success),
 
     new ButtonBuilder()
       .setCustomId("chamar")
-      .setLabel("📞 Chamado")
+      .setLabel("🎁 Sorteio")
       .setStyle(ButtonStyle.Primary),
 
     new ButtonBuilder()
@@ -73,29 +74,35 @@ function embed() {
     ? top.map(([id, p], i) =>
         `${medal[i]} <@${id}> — **${p} pontos**`
       ).join("\n")
-    : "Sem participantes ainda.";
+    : "Nenhum participante ainda.";
 
   return new EmbedBuilder()
-    .setColor("#00ffcc")
-    .setTitle("🏥 EVENTO HOSPITAL BELLA RP")
+    .setColor("#ff00ff")
+    .setTitle("🎉 EVENTO ESPECIAL HOSPITAL BELLA RP")
     .setDescription(`
 ━━━━━━━━━━━━━━━━━━━━━━
-📅 24/04/2026
-🕖 19:00 - 20:30 (Brasília)
+📅 **HOJE - 27/04/2026**
+🕘 21:00 até 22:00
 
-🔥 COMPETIÇÃO ATIVA
+🎁 **EVENTO DE SORTEIO + COMPETIÇÃO**
 
-🏆 TOP 3
+🔥 Participe e acumule pontos!
+🔥 No final haverá sorteio entre participantes ativos!
+
+🏆 TOP 3 (ranking)
 ${list}
 
 💰 PREMIAÇÃO
-🥇 75.000 + Cargo TOP 1  
-🥈 50.000 + Cargo TOP 2  
-🥉 25.000 + Cargo TOP 3  
+🥇 100.000 + Cargo VIP + Sorteio Extra  
+🥈 60.000 + Cargo Destaque  
+🥉 30.000 + Cargo Participante  
+
+🎲 SORTEIO FINAL
+- Dinheiro + Itens exclusivos + Cargo aleatório
 
 ━━━━━━━━━━━━━━━━━━━━━━
 `)
-    .setFooter({ text: "Hospital Bella RP • Sistema Automático" });
+    .setFooter({ text: "Hospital Bella RP • Evento Automático" });
 }
 
 /* =========================
@@ -113,7 +120,7 @@ async function alertaEvento(client) {
         new EmbedBuilder()
           .setColor("#ffcc00")
           .setTitle("🚨 EVENTO EM 20 MINUTOS")
-          .setDescription("🏥 O Hospital Bella começa em breve!")
+          .setDescription("🎉 O evento de SORTEIO começa às 21:00!")
       ]
     });
 
@@ -165,14 +172,14 @@ function eventoInteractions(interaction) {
 
   if (!ativo()) {
     return interaction.reply({
-      content: "⏰ Evento não está ativo.",
+      content: "⏰ O evento ainda não está ativo ou já terminou.",
       ephemeral: true
     });
   }
 
   if (!interaction.member.roles.cache.has(PARTICIPANTE_ROLE)) {
     return interaction.reply({
-      content: "🚫 Sem permissão.",
+      content: "🚫 Você não está registrado no evento.",
       ephemeral: true
     });
   }
@@ -180,7 +187,7 @@ function eventoInteractions(interaction) {
   ranking.set(id, (ranking.get(id) || 0) + 1);
 
   return interaction.reply({
-    content: "✔ +1 ponto registrado!",
+    content: "✔ Você ganhou +1 ponto no evento!",
     ephemeral: true
   });
 }
